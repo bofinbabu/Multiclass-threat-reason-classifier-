@@ -67,8 +67,14 @@ def clean_str(string):
     string = re.sub(r"\"", "", string)
     return string.strip().lower()
 
+ 
 
-rev_text = ["Clinicopathological features of elevated lesions of the duodenal bulb. We present here  our findings on patients with an elevated lesion of the duodenal bulb. All these patients were treated in our clinics between the years 1984 and 1988. These lesions were present in 36 of 8 802 patients who underwent upper gastrointestinal pan-endoscopy. Two patients had a duodenal carcinoma  2 an adenoma  and 1 a Brunner s gland adenoma. There were 15 with a hyperplastic polyp  3 with a heterogenic gastric mucosa  3 with Brunner s gland hyperplasia  6 with duodenitis  and 4 with regenerative mucos a. Among these 36 lesions  only 69   25 lesions  were evident on the upper gastrointestinal X-ray series. Adenoma and Brunner s gland adenoma    were of a pedunculated form of the gross type and had an irregular surface mucosa. Both duodenal carcinomas were detected by endoscopic biopsy and   were resected. Histologically  these lesions were limited to the submucosal layer and were of the non","Hello I am Mayank"]
+with open('mytextfile.txt') as f:
+    rev_text = f.readlines()
+rev_text = [x.strip() for x in rev_text]
+print len(rev_text)
+
+
 rev_text = np.asarray(rev_text)
 print 'rev_text shape si ',rev_text.shape
 
