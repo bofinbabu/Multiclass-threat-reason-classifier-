@@ -43,7 +43,7 @@ def clean_str(string):
     return string.strip().lower()
 
 data_train = pd.read_csv('ohsumed_numeric.csv')
-#data_train = data_train[:400]
+data_train = data_train[:1600]
 print data_train.shape
 
 from nltk import tokenize
@@ -187,17 +187,17 @@ class AttLayer(Layer):
 
 sentence_input = Input(shape=(MAX_SENT_LENGTH,), dtype='int32')
 embedded_sequences = embedding_layer(sentence_input)
-l_lstm = Bidirectional(GRU(100, return_sequences=True))(embedded_sequences)
-l_dense = TimeDistributed(Dense(200))(l_lstm)
+l_lstm = Bidirectional(GRU(50, return_sequences=True))(embedded_sequences)
+l_dense = TimeDistributed(Dense(50))(l_lstm)
 l_att = AttLayer()(l_dense)
 sentEncoder = Model(sentence_input, l_att)
 
 review_input = Input(shape=(MAX_SENTS,MAX_SENT_LENGTH), dtype='int32')
 review_encoder = TimeDistributed(sentEncoder)(review_input)
-l_lstm_sent = Bidirectional(GRU(100, return_sequences=True))(review_encoder)
-l_dense_sent = TimeDistributed(Dense(200))(l_lstm_sent)
+l_lstm_sent = Bidirectional(GRU(50, return_sequences=True))(review_encoder)
+l_dense_sent = TimeDistributed(Dense(50))(l_lstm_sent)
 l_att_sent = AttLayer()(l_dense_sent)
-preds = Dense(7, activation='softmax')(l_att_sent)
+preds = Dense(4, activation='softmax')(l_att_sent)
 model = Model(review_input, preds)
 
 model.compile(loss='categorical_crossentropy',
@@ -206,4 +206,8 @@ model.compile(loss='categorical_crossentropy',
 
 print("model fitting - Hierachical attention network")
 model.fit(x_train, y_train, validation_data=(x_val, y_val),
-          nb_epoch=10, batch_size=50)
+          nb_epoch= 1, batch_size=50)
+
+from keras.models import load_model
+
+model.save('hat_model_4_classes.h5')
