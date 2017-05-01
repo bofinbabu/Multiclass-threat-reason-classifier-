@@ -42,8 +42,8 @@ def clean_str(string):
     string = re.sub(r"\"", "", string)
     return string.strip().lower()
 
-data_train = pd.read_csv('ohsumed_numeric.csv')
-data_train = data_train[:1600]
+data_train = pd.read_csv('req_file.csv')
+#data_train = data_train[:10000]
 print data_train.shape
 
 from nltk import tokenize
@@ -52,15 +52,15 @@ reviews = []
 labels = []
 texts = []
 
-for idx in range(data_train.review.shape[0]):
-    text = BeautifulSoup(data_train.review[idx])
+for idx in range(data_train.docs.shape[0]):
+    text = BeautifulSoup(data_train.docs[idx])
     text = clean_str(text.get_text().encode('ascii','ignore'))
     texts.append(text)
     sentences = tokenize.sent_tokenize(text)
     reviews.append(sentences)
 
     #.append(data_train.sentiment[idx])
-    labels.append(data_train.class_ans[idx])
+    labels.append(data_train.label[idx])
 
 tokenizer = Tokenizer(nb_words=MAX_NB_WORDS)
 tokenizer.fit_on_texts(texts)
@@ -102,50 +102,14 @@ print y_val.sum(axis=0)
 #GLOVE_DIR = "/ext/home/analyst/Testground/data/glove"
 embeddings_index = {}
 #f = open(os.path.join(GLOVE_DIR, 'glove.6B.100d.txt'))
-f = open('glove.6B.100d.txt')
-for line in f:
-    values = line.split()
-    word = values[0]
-    coefs = np.asarray(values[1:], dtype='float32')
-    embeddings_index[word] = coefs
-f.close()
+import pickle
+with open('embeddings_index.pickle', 'rb') as handle:
+    embeddings_index = pickle.load(handle)
+print 'loaded'
+
 
 print('Total %s word vectors.' % len(embeddings_index))
-'''
-embedding_matrix = np.random.random((len(word_index) + 1, EMBEDDING_DIM))
-for word, i in word_index.items():
-    embedding_vector = embeddings_index.get(word)
-    if embedding_vector is not None:
-        # words not found in embedding index will be all-zeros.
-        embedding_matrix[i] = embedding_vector
 
-embedding_layer = Embedding(len(word_index) + 1,
-                            EMBEDDING_DIM,
-                            weights=[embedding_matrix],
-                            input_length=MAX_SENT_LENGTH,
-                            trainable=True)
-
-sentence_input = Input(shape=(MAX_SENT_LENGTH,), dtype='int32')
-embedded_sequences = embedding_layer(sentence_input)
-l_lstm = Bidirectional(LSTM(100))(embedded_sequences)
-sentEncoder = Model(sentence_input, l_lstm)
-
-review_input = Input(shape=(MAX_SENTS,MAX_SENT_LENGTH), dtype='int32')
-review_encoder = TimeDistributed(sentEncoder)(review_input)
-l_lstm_sent = Bidirectional(LSTM(100))(review_encoder)
-preds = Dense(2, activation='softmax')(l_lstm_sent)
-model = Model(review_input, preds)
-
-model.compile(loss='categorical_crossentropy',
-              optimizer='rmsprop',
-              metrics=['acc'])
-
-print("model fitting - Hierachical LSTM")
-print model.summary()
-model.fit(x_train, y_train, validation_data=(x_val, y_val),
-          nb_epoch=10, batch_size=50)
-'''
-# building Hierachical Attention network
 embedding_matrix = np.random.random((len(word_index) + 1, EMBEDDING_DIM))
 for word, i in word_index.items():
     embedding_vector = embeddings_index.get(word)
@@ -187,27 +151,20 @@ class AttLayer(Layer):
 
 sentence_input = Input(shape=(MAX_SENT_LENGTH,), dtype='int32')
 embedded_sequences = embedding_layer(sentence_input)
-l_lstm = Bidirectional(GRU(50, return_sequences=True))(embedded_sequences)
-l_dense = TimeDistributed(Dense(50))(l_lstm)
+l_lstm = Bidirectional(GRU(20, return_sequences=True))(embedded_sequences)
+l_dense = TimeDistributed(Dense(20))(l_lstm)
 l_att = AttLayer()(l_dense)
 sentEncoder = Model(sentence_input, l_att)
 
 review_input = Input(shape=(MAX_SENTS,MAX_SENT_LENGTH), dtype='int32')
 review_encoder = TimeDistributed(sentEncoder)(review_input)
-l_lstm_sent = Bidirectional(GRU(50, return_sequences=True))(review_encoder)
-l_dense_sent = TimeDistributed(Dense(50))(l_lstm_sent)
+l_lstm_sent = Bidirectional(GRU(20, return_sequences=True))(review_encoder)
+l_dense_sent = TimeDistributed(Dense(20))(l_lstm_sent)
 l_att_sent = AttLayer()(l_dense_sent)
-preds = Dense(4, activation='softmax')(l_att_sent)
+preds = Dense(7, activation='softmax')(l_att_sent)
 model = Model(review_input, preds)
 
-model.compile(loss='categorical_crossentropy',
-              optimizer='rmsprop',
-              metrics=['acc'])
+model.compile(loss='categorical_crossentropy',  optimizer='rmsprop',  metrics=['acc'])
 
 print("model fitting - Hierachical attention network")
-model.fit(x_train, y_train, validation_data=(x_val, y_val),
-          nb_epoch= 1, batch_size=50)
-
-from keras.models import load_model
-
-model.save('hat_model_4_classes.h5')
+model.fit(x_train, y_train, validation_data=(x_val, y_val), nb_epoch= 6, batch_size=50)
